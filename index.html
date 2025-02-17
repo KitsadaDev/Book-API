@@ -10,27 +10,73 @@
 
 <body class="bg-gray-100 text-gray-800">
     <div class="container mx-auto p-4">
-        <h1 class="text-3xl font-bold mb-4 text-center">Book Management</h1>
+        <h1 class="text-3xl font-bold mb-4 text-center">User Management</h1>
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <h2 class="text-xl font-semibold p-4 border-b">Book List</h2>
+            <h2 class="text-xl font-semibold p-4 border-b">User List</h2>
+            <form id="addBookForm" class="p-4 border-b">
+                <input type="text" id="newBookfirstname" placeholder="firstname" class="border p-2 mr-2" required>
+                <input type="text" id="newBooklastname" placeholder="lastname" class="border p-2 mr-2" required>
+                <input type="email" id="newBookemail" placeholder="email" class="border p-2 mr-2" required>
+                <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Add User</button>
+            </form>
             <table class="min-w-full bg-white">
                 <thead>
                     <tr class="w-full bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
                         <th class="py-3 px-6 text-left">ID</th>
-                        <th class="py-3 px-6 text-left">Title</th>
-                        <th class="py-3 px-6 text-left">Author</th>
-                        <th class="py-3 px-6 text-left">Published Date</th>
+                        <th class="py-3 px-6 text-left">firstname</th>
+                        <th class="py-3 px-6 text-left">lastname</th>
+                        <th class="py-3 px-6 text-left">email</th>
                         <th class="py-3 px-6 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="bookTableBody" class="text-gray-600 text-sm font-light">
-                    <!-- Book rows will be inserted here by JavaScript -->
                 </tbody>
             </table>
         </div>
     </div>
+
+    <div id="editBookModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
+        <div class="bg-white p-4 rounded-lg">
+            <h2 class="text-xl font-semibold mb-4">Edit User</h2>
+            <form id="editBookForm">
+                <input type="hidden" id="editBookId">
+                <input type="text" id="editBookfirstname" placeholder="firstname" class="border p-2 mb-2 w-full" required>
+                <input type="text" id="editBooklastname" placeholder="lastname" class="border p-2 mb-2 w-full" required>
+                <input type="email" id="editBookemail" placeholder="email" class="border p-2 mb-2 w-full" required>
+                <button type="submit" class="bg-green-700 text-white px-3 py-1 rounded">Save Changes</button>
+                <button type="button" class="bg-gray-500 text-white px-3 py-1 rounded" onclick="closeEditForm()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const bookTableBody = document.getElementById('bookTableBody');
+        const addBookForm = document.getElementById('addBookForm');
+
+        addBookForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const firstname = document.getElementById('newBookfirstname').value;
+            const lastname = document.getElementById('newBooklastname').value;
+            const email = document.getElementById('newBookemail').value;
+
+            try {
+                const response = await fetch('http://localhost:8000/book/insert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ firstname, lastname, email: email })
+                });
+                if (response.ok) {
+                    fetchBooks();
+                    addBookForm.reset();
+                } else {
+                    console.error('Error adding book:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error adding book:', error);
+            }
+        });
 
         const fetchBooks = async () => {
             try {
@@ -42,13 +88,13 @@
                     row.classList.add('border-b', 'border-gray-200', 'hover:bg-gray-100');
                     row.innerHTML = `
                         <td class="py-3 px-6 text-left whitespace-nowrap">${book.id}</td>
-                        <td class="py-3 px-6 text-left">${book.title}</td>
-                        <td class="py-3 px-6 text-left">${book.author}</td>
-                        <td class="py-3 px-6 text-left">${book.published_date}</td>
+                        <td class="py-3 px-6 text-left">${book.firstname}</td>
+                        <td class="py-3 px-6 text-left">${book.lastname}</td>
+                        <td class="py-3 px-6 text-left">${book.email}</td>
                         <td class="py-3 px-6 text-center">
                             <button class="bg-blue-500 text-white px-3 py-1 rounded mr-2" onclick="editBook(${book.id})">Edit</button>
                             <button class="bg-red-500 text-white px-3 py-1 rounded" onclick="deleteBook(${book.id})">Delete</button>
-                            <button class="bg-green-500 text-white px-3 py-1 rounded" onclick="showEditForm(${book.id}, '${book.title}', '${book.author}', '${book.published_date}')">Edit All</button>
+                            <button class="bg-green-500 text-white px-3 py-1 rounded" onclick="showEditForm(${book.id}, '${book.firstname}', '${book.lastname}', '${book.email}')">Edit All</button>
                         </td>
                     `;
                     bookTableBody.appendChild(row);
@@ -59,15 +105,15 @@
         };
 
         const editBook = async (id) => {
-            const title = prompt("Enter new title:");
-            if (title) {
+            const firstname = prompt("Enter new firstname:");
+            if (firstname) {
                 try {
                     const response = await fetch(`http://localhost:8000/book/${id}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ title })
+                        body: JSON.stringify({ firstname })
                     });
                     if (response.ok) {
                         fetchBooks(); 
@@ -96,6 +142,44 @@
                 }
             }
         };
+
+        const showEditForm = (id, firstname, lastname, email) => {
+            document.getElementById('editBookId').value = id;
+            document.getElementById('editBookfirstname').value = firstname;
+            document.getElementById('editBooklastname').value = lastname;
+            document.getElementById('editBookemail').value = email;
+            document.getElementById('editBookModal').classList.remove('hidden');
+        };
+
+        const closeEditForm = () => {
+            document.getElementById('editBookModal').classList.add('hidden');
+        };
+
+        document.getElementById('editBookForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = document.getElementById('editBookId').value;
+            const firstname = document.getElementById('editBookfirstname').value;
+            const lastname = document.getElementById('editBooklastname').value;
+            const email = document.getElementById('editBookemail').value;
+
+            try {
+                const response = await fetch(`http://localhost:8000/book/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ firstname, lastname, email })
+                });
+                if (response.ok) {
+                    fetchBooks();
+                    closeEditForm();
+                } else {
+                    console.error('Error editing book:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error editing book:', error);
+            }
+        });
 
         fetchBooks();
     </script>
